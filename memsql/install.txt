@@ -1,0 +1,10 @@
+Use --version dev:7e98bd86-f9a9-4f41-86a2-bd76d583394b with `memsql-deploy install` for 7.0 beta 2
+Use --version dev:6edcec8f-43bb-4533-81e4-d0cf11eaa9eb with `memsql-deploy install` for 7.0 beta 3
+
+Get license from portal.memsql.com and use with --license
+
+https://docs.memsql.com/v7.0-beta/guides/deploy-memsql/self-managed/memsql-tools/multi-host/comprehensive/step-2/
+
+https://docs.memsql.com/v7.0-beta/guides/deploy-memsql/self-managed/memsql-tools/multi-host/comprehensive/step-3/
+
+https://docs.memsql.com/v7.0-beta/guides/deploy-memsql/self-managed/memsql-tools/multi-host/comprehensive/step-4/

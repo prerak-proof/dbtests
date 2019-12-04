@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+<yandex>
+    <http_port>8080</http_port>
+    <listen_host>0.0.0.0</listen_host>
+
+    <!--
+    <remote_servers>
+        <prerak>
+            <shard>
+                <replica>
+                    <host>172.31.64.82</host>
+                    <port>9000</port>
+                </replica>
+            </shard>
+            <shard>
+                <replica>
+                    <host>172.31.75.231</host>
+                    <port>9000</port>
+                </replica>
+            </shard>
+        </prerak>
+    </remote_servers>
+
+    <zookeeper-servers>
+        <node>
+            <host>172.31.64.82</host>
+            <port>2181</port>
+        </node>
+        <node>
+            <host>172.31.75.231</host>
+            <port>2181</port>
+        </node>
+    </zookeeper-servers>
+
+    <macros>
+        <shard>02</shard>
+        <replica>01</replica>
+    </macros>
+    -->
+</yandex>

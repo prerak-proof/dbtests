@@ -1,0 +1,76 @@
+login("admin", "123456")
+
+
+     numBuckets = 128
+DATA_DIR="/home/ec2-user/taq/"
+t=ploadText(DATA_DIR+"/EQY_US_ALL_TRADE_20180730", "|")
+t=select count(*) as ct from t group by Symbol
+delete from t where regexFind(Symbol, "[0-9]", 0)>=0;
+t=select * from t order by Symbol;
+buckets = cutPoints(exec Symbol from t, numBuckets, exec ct from t)
+buckets[size(buckets)-1]=`ZZZZZZZZZ
+
+t
+
+dbName = "dfs://TAQ"
+if (existsDatabase(dbName)) dropDatabase(dbName)
+db1 = database("", VALUE, 2018.01.01..2019.12.31)
+db2 = database("", RANGE, buckets)
+db = database(dbName, COMPO, [db1, db2])
+
+db = database("dfs://TAQ")
+
+
+def loadrecords(db, tablename, filename, dt) {
+	t = db.loadTable(tablename);
+	ss = schema(t).colDefs;
+	delete from ss where name="date";
+    q = loadText("/home/ec2-user/taq/" + filename, "|", ss);
+	update q set date=dt;  // we have to do
+	delete from q where isNull(Time);
+	t.append!(q);
+}
+
+loadrecords(db, `trades, "EQY_US_ALL_TRADE_20180730", 2018.07.30)
+loadrecords(db, `quotes, fn("X"), 2018.07.30)
+
+def fn(x): "SPLITS_US_ALL_BBO_"+x+"_20180730";
+loop(loadrecords{db, `quotes, , 2018.07.30}, each(fn, char(88..88)));
+
+// completes in 1.5s
+select sum(c) from (
+   // completes in 1.2s
+   select count(*) c from db.quotes where date=2018.07.30
+   group by Symbol
+) group by substr(Symbol, 0, 1);
+
+// completes in 25s
+select count(*) c, sum(Trade_Volume), avg(Trade_Price), avg(iif(Offer_Price>Bid_Price,Offer_Price-Bid_Price,NULL)) from aj(db.trades, db.quotes, `date`Symbol`Exchange`Time)
+where date=2018.07.30
+group by Symbol
+order by c desc;
+
+select top 100 * from
+    aj(db.trades, db.quotes, `date`Symbol`Exchange`Time)
+where date=2018.07.30, Symbol='AMD';
+
+
+schema(db.trades)
+
+// finished in 5.6s
+select wavg(Trade_Price, Trade_Volume) as vwap, sum(Trade_Volume) from db.trades where date=2018.07.30
+group by Symbol, minute(Time)
+
+
+// OHLC - completed in 771ms
+select count(t), sum(c), min(f), max(l), max(mx), min(mn), sum(v) from (
+select count(*) c, first(Trade_Price) f, last(Trade_Price) l, max(Trade_Price) mx, min(Trade_Price) mn, sum(Trade_Volume) v from db.trades where date=2018.07.30
+group by Symbol, minute(Time) t)
+group by Symbol
+
+
+// time weighted average - 23s
+select wavg(Offer_Price-Bid_Price, (nullFill(contextby(next, Time, Exchange), 86400000000000)-Time)) as TS from db.quotes where date=2018.07.30
+, not isNull(Bid_Price), not isNull(Offer_Price), Offer_Price>Bid_Price, Quote_Condition in ('A','B','H','O','R','W'),
+between(Time, 09:30:00.000000000:16:00:00.000000000)
+group by Symbol

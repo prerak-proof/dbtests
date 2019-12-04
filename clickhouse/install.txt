@@ -1,0 +1,50 @@
+ec2-user@ip-172-31-81-129 log]$ history
+    2  sudo yum install htop
+    3  htop
+    4  sudo rpm --import https://repo.yandex.ru/clickhouse/CLICKHOUSE-KEY.GPG
+    5  sudo yum-config-manager --add-repo https://repo.yandex.ru/clickhouse/rpm/stable/x86_64
+    6  sudo yum install clickhouse-server clickhouse-client
+    7  sudo -i
+
+[root@ip-172-31-81-129 ~]# history
+    1  getent passwd
+    2  getent passwd | grep clickhouse
+    3  useradd clickhouse
+    4  groupadd clickhouse
+    5  getent passwd | grep clickhouse
+    7  usermod -a -G clickhouse clickhouse
+    9  getent group
+   10  exit
+   11  cd /etc/clickhouse-server/
+   12  mkdir conf.d
+   13  cd conf.d/
+   14  vi prerak.xml
+   15  exit
+   16  cd /var/log/
+   17  chown -R clickhouse:clickhouse clickhouse-server
+   18  chmod o+rx clickhouse-server/
+   19  cd clickhouse-server/
+   20  ls
+   21  ls -l
+   22  chmod o+r *
+   23  ls
+   24  ls -l
+   25  cd ..
+   26  ls -l
+   27  exit
+   28  cd /var/lib/
+   29  ls -l
+   30  chown -R clickhouse:clickhouse clickhouse/
+   31  exit
+
+    8  sudo systemctl enable clickhouse-server
+    9  sudo systemctl start clickhouse-server; journalctl -xe
+   10  cd /var/log
+   11  ls
+   40  sudo systemctl status clickhouse-server
+   41  ps -ef | grep clickhouse
+
+   43  sudo yum install epel-release
+   44  sudo amazon-linux-extras install epel
+   45  sudo yum install glances
+   46  glances -1

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="DataSourceManagerImpl" format="xml" multifile-model="true">
+    <data-source source="LOCAL" name="ch1" uuid="cbe1961e-da2c-4b30-8a12-adfc9d278b9c">
+      <driver-ref>clickhouse</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>ru.yandex.clickhouse.ClickHouseDriver</jdbc-driver>
+      <jdbc-url>jdbc:clickhouse://ec2-18-212-19-45.compute-1.amazonaws.com:8080/default</jdbc-url>
+    </data-source>
+    <data-source source="LOCAL" name="memsql-primary" uuid="70d0aa15-82d9-41c8-bf83-944b5a1800f9">
+      <driver-ref>mysql.8</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>com.mysql.cj.jdbc.Driver</jdbc-driver>
+      <jdbc-url>jdbc:mysql://ec2-3-230-62-201.compute-1.amazonaws.com:3306/trades</jdbc-url>
+    </data-source>
+    <data-source source="LOCAL" name="timescaledb" uuid="5a9be473-4bc6-42a9-b30f-256ed933937b">
+      <driver-ref>postgresql</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>org.postgresql.Driver</jdbc-driver>
+      <jdbc-url>jdbc:postgresql://ec2-52-90-12-199.compute-1.amazonaws.com:5432/trades</jdbc-url>
+    </data-source>
+  </component>
+</project>
