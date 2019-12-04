@@ -1,7 +1,7 @@
 login("admin", "123456")
 
 
-     numBuckets = 128
+numBuckets = 128
 DATA_DIR="/home/ec2-user/taq/"
 t=ploadText(DATA_DIR+"/EQY_US_ALL_TRADE_20180730", "|")
 t=select count(*) as ct from t group by Symbol
@@ -10,7 +10,6 @@ t=select * from t order by Symbol;
 buckets = cutPoints(exec Symbol from t, numBuckets, exec ct from t)
 buckets[size(buckets)-1]=`ZZZZZZZZZ
 
-t
 
 dbName = "dfs://TAQ"
 if (existsDatabase(dbName)) dropDatabase(dbName)
@@ -22,21 +21,22 @@ db = database("dfs://TAQ")
 
 
 def loadrecords(db, tablename, filename, dt) {
-	t = db.loadTable(tablename);
-	ss = schema(t).colDefs;
-	delete from ss where name="date";
+    t = db.loadTable(tablename);
+    ss = schema(t).colDefs;
+    delete from ss where name="date";
     q = loadText("/home/ec2-user/taq/" + filename, "|", ss);
-	update q set date=dt;  // we have to do
-	delete from q where isNull(Time);
-	t.append!(q);
+    update q set date=dt;  // we have to do
+    delete from q where isNull(Time);
+    t.append!(q);
 }
 
 loadrecords(db, `trades, "EQY_US_ALL_TRADE_20180730", 2018.07.30)
 loadrecords(db, `quotes, fn("X"), 2018.07.30)
 
 def fn(x): "SPLITS_US_ALL_BBO_"+x+"_20180730";
-loop(loadrecords{db, `quotes, , 2018.07.30}, each(fn, char(88..88)));
+loop(loadrecords{db, `quotes, , 2018.07.30}, each(fn, char(65..90)));
 
+// count by symbol and first letter of symbol
 // completes in 1.5s
 select sum(c) from (
    // completes in 1.2s
@@ -44,19 +44,22 @@ select sum(c) from (
    group by Symbol
 ) group by substr(Symbol, 0, 1);
 
-// completes in 25s
+// aj for all symbols
+// completes in 25s!
 select count(*) c, sum(Trade_Volume), avg(Trade_Price), avg(iif(Offer_Price>Bid_Price,Offer_Price-Bid_Price,NULL)) from aj(db.trades, db.quotes, `date`Symbol`Exchange`Time)
 where date=2018.07.30
 group by Symbol
 order by c desc;
 
+// make sure it's doing what we think it's doing
 select top 100 * from
     aj(db.trades, db.quotes, `date`Symbol`Exchange`Time)
 where date=2018.07.30, Symbol='AMD';
 
-
+// see partitions, etc
 schema(db.trades)
 
+// vwap by symbol by minute
 // finished in 5.6s
 select wavg(Trade_Price, Trade_Volume) as vwap, sum(Trade_Volume) from db.trades where date=2018.07.30
 group by Symbol, minute(Time)
