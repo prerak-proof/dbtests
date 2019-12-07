@@ -263,6 +263,39 @@ on t.sym=q.sym and q.ex=t.ex and q.tsnano < t.tsnano and t.tsnano <= q.tsnano_en
 where t.sym='BAC'
 ) m;
 
+-- try a procedural way
+-- takes an hour just for BAC
+delimiter //
+create or replace procedure trades_asof_quotes(sym_in text) as
+declare
+    q QUERY(tsnano bigint, sz int, ex char(1)) = select tsnano, sz, ex from taq_trade2 where sym=sym_in;
+    a ARRAY(RECORD(tsnano bigint, sz int, ex char(1)));
+    _tsnano bigint;
+    _sz int;
+    _ex char(1);
+BEGIN
+    drop table if exists r;
+    create temporary table r (ex char(1), tsnano bigint, qtsnano bigint, sz int, bid_px decimal(18,4), ask_px decimal(18,4));
+
+    a = COLLECT(q);
+    -- echo select count(*) from q;
+    for x in a loop
+        _tsnano = x.tsnano;
+        _sz = x.sz;
+        _ex = x.ex;
+        insert into r
+            select ex, _tsnano, tsnano, _sz, bid_px, ask_px
+            from taq_quote2
+            where sym=sym_in and ex=_ex and tsnano < _tsnano
+            order by tsnano desc limit 1;
+    end loop;
+    -- echo select count(*) from r;
+    echo select sym_in as sym, ex, count(1) as cnt, sum(sz) as vol, avg(if(ask_px > 0 and bid_px>0, ask_px-bid_px, 0.01)) as spread from r group by 2 order by 3 desc;
+    drop table r;
+end //
+delimiter ;
+call trades_asof_quotes('BAC');
+
 -- -- this actually does a MergeJoin (verified using profile)
 -- finishes in 52s!
 select ex, sum(sz), avg(if(ask_px > 0 and bid_px>0, ask_px-bid_px, 0.01)) from (
@@ -306,9 +339,52 @@ select sym, count(t), sum(c), min(f), max(l), max(mx), min(mn), sum(v) from (
 
 -- -- time-weighted spread
 -- completes in 45.87s
-select sym, count(*), avg(ask_px-bid_px), sum((tsnano_end - tsnano)*(ask_px-bid_px))/sum(tsnano_end-tsnano), max(tsnano_end-tsnano) as avgspread from taq_quote2
+select sym, count(*), avg(ask_px-bid_px) as avgspread, sum((tsnano_end - tsnano)*(ask_px-bid_px))/sum(tsnano_end-tsnano) as twspread from taq_quote2
 where bid_px is not null and ask_px is not null and ask_px>bid_px
 and cond in ('A','B','H','O','R','W')
 and time(ts) >= ('09:30:00') and time(ts) <= ('16:00:00')
 and sym='AMD'
 group by 1;
+
+
+-- -- time-weighted spread without using tsnano_end
+-- does not complete (runs out of memory after about a minute)
+select sym, count(*), avg(spread) as avgspread, sum(quote_life*spread)/sum(quote_life) as twspread from (
+select sym, (ask_px-bid_px) as spread, (LEAD(tsnano) over w)-tsnano as quote_life from taq_quote2
+where sym = 'AMD'
+  and bid_px is not null and ask_px is not null and ask_px>bid_px
+  and cond in ('A','B','H','O','R','W')
+  and time(ts) >= ('09:30:00') and time(ts) <= ('16:00:00')
+window w as (partition by sym, ex order by tsnano)
+) m group by 1;
+
+
+-- -- time weighted spread
+-- -- procedural approach to avoid running out of memory (do one letter at a time)
+delimiter //
+create or replace procedure calc_twspread() as
+declare
+begin
+    drop table if exists r;
+    create temporary table r(sym varchar(12), twspread decimal(18,4));
+
+    for x in 65..90 loop
+        insert into r
+        select sym, sum(quote_life*spread)/sum(quote_life) as twspread from (
+            select sym, (ask_px-bid_px) as spread, (LEAD(tsnano) over w)-tsnano as quote_life from taq_quote2
+            where sym like concat(char(x),'%')
+              and bid_px is not null and ask_px is not null and ask_px>bid_px
+              and cond in ('A','B','H','O','R','W')
+              and time(ts) >= ('09:30:00') and time(ts) <= ('16:00:00')
+                window w as (partition by sym, ex order by tsnano)
+        ) m group by 1;
+    end loop;
+
+    echo select * from r;
+    drop table r;
+end //
+delimiter ;
+
+-- finishes in ~2min
+set sql_select_limit=1000000000;
+call calc_twspread()
